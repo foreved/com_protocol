@@ -1,0 +1,19 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**"
+            ],
+            "defines": [
+                "STM32F103xB",
+                "USE_FULL_LL_DRIVER"
+            ],
+            "compilerPath": "/opt/arm-none-eabi/bin/arm-none-eabi-gcc",
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-arm"
+        }
+    ],
+    "version": 4
+}
