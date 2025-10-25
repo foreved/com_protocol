@@ -42,7 +42,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+uint8_t Lib_USART_Buffer[LIB_USART_BUFFER_MAXSIZE] = "Send a char from PC, and it will been resended from mcu.\n";
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,12 +100,12 @@ int main(void)
   /* USER CODE BEGIN 2 */
   Lib_USART_Init();
 
-  Lib_USART_Send_String("This is a test on USART.\n1\n 2\n");
-  Lib_USART_Send_fString("This ia a test for format string. %d arguments:\n", 6);
-  Lib_USART_Send_fString("%d; %d; %d; %x; %x; %x\n", 123, -123, 0, 1234, -1234, 0);
-  Lib_USART_Send_fString("%f; %f; %f; %f; %f\n", 0.0, 3.1415926, -3.1415926, 1.0 / 3, -1.0 / 3);
+  // Lib_USART_Send_String("This is a test on USART.\n1\n 2\n");
+  // Lib_USART_Send_fString("This ia a test for format string. %d arguments:\n", 6);
+  // Lib_USART_Send_fString("%d; %d; %d; %x; %x; %x\n", 123, -123, 0, 1234, -1234, 0);
+  // Lib_USART_Send_fString("%f; %f; %f; %f; %f\n", 0.0, 3.1415926, -3.1415926, 1.0 / 3, -1.0 / 3);
   /* USER CODE END 2 */
-
+  LIB_USART_DMA_CH_EN();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)

@@ -4,10 +4,12 @@ void Lib_USART_Init(void)
 {
   LL_GPIO_InitTypeDef gpio_config = {0};
   LL_USART_InitTypeDef usart_config = {0};
+  LL_DMA_InitTypeDef dma_config = {0};
 
   // 开启外设的时钟
   LIB_USART_ENCLK();
   LIB_USART_PORT_ENCLK();
+  LIB_USART_DMA_ENCLK();
 
   // TX为复用推挽输出
   gpio_config.Pin = LIB_USART_TX_PIN;
@@ -33,6 +35,35 @@ void Lib_USART_Init(void)
   usart_config.HardwareFlowControl = LL_USART_HWCONTROL_NONE;
   // 初始化USART
   LL_USART_Init(LIB_USART, &usart_config);
+
+  // 配置中断
+  #if LIB_USART_IT_EN
+    NVIC_SetPriority(LIB_USART_IRQ, NVIC_EncodePriority(NVIC_GetPriorityGrouping(), 
+                    LIB_USART_PREEMPT_PRIORITY, LIB_USART_SUB_PRIORITY));
+    NVIC_EnableIRQ(LIB_USART_IRQ);
+
+    // 接收中断
+    #if LIB_USART_IT_RX_EN
+      LL_USART_EnableIT_RXNE(LIB_USART);
+    #endif
+  #endif
+
+  // 配置DMA
+  #if LIB_USART_DMA_EN
+    dma_config.Priority = LIB_USART_DMA_PRIORITY;
+    dma_config.Direction = LIB_USART_DMA_DIRECTION;
+    dma_config.Mode = LIB_USART_DMA_MODE;
+    dma_config.PeriphOrM2MSrcAddress = LIB_USART_DMA_PADDR;
+    dma_config.MemoryOrM2MDstAddress = LIB_USART_DMA_MADDR;
+    dma_config.PeriphOrM2MSrcIncMode = LIB_USART_DMA_PINC;
+    dma_config.MemoryOrM2MDstIncMode = LIB_USART_DMA_MINC;
+    dma_config.PeriphOrM2MSrcDataSize = LIB_USART_DMA_PDSIZE;
+    dma_config.MemoryOrM2MDstDataSize = LIB_USART_DMA_MDSIZE;
+    dma_config.NbData = LIB_USART_DMA_NDATA;
+    LL_DMA_Init(LIB_USART_DMA, LIB_USART_DMA_CH, &dma_config);
+    // 允许USART_TX发起DMA请求
+    LL_USART_EnableDMAReq_TX(LIB_USART);
+  #endif
 
   // 使能USART
   LL_USART_Enable(LIB_USART);
@@ -266,4 +297,15 @@ void Lib_USART_Send_fString(const char * str, ...)
   while (LL_USART_IsActiveFlag_TC(LIB_USART) != SET);
 
   va_end(ap);           // 释放ap
+}
+
+// USART的中断服务函数
+void Lib_USART_IT_Handler(void)
+{
+  uint8_t tmp = 0;
+  if (LL_USART_IsActiveFlag_RXNE(LIB_USART) == SET)
+  {
+    tmp = LL_USART_ReceiveData8(LIB_USART);
+    Lib_USART_Send_fString("RX IT: %x\n", tmp);
+  }
 }

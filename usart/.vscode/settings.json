@@ -3,6 +3,7 @@
         "main.h": "c",
         "stm32f1xx_ll_utils.h": "c",
         "stm32f1xx_ll_usart.h": "c",
-        "stm32f1xx_ll_rcc.h": "c"
+        "stm32f1xx_ll_rcc.h": "c",
+        "stdarg.h": "c"
     }
 }
