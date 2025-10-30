@@ -1,10 +1,14 @@
 #include "lib_usart.h"
 
+uint8_t Lib_USART_Buffer[LIB_USART_BUFFER_MAXSIZE];
+
 void Lib_USART_Init(void)
 {
   LL_GPIO_InitTypeDef gpio_config = {0};
   LL_USART_InitTypeDef usart_config = {0};
-  LL_DMA_InitTypeDef dma_config = {0};
+  #if LIB_USART_DMA_EN
+    LL_DMA_InitTypeDef dma_config = {0};
+  #endif
 
   // 开启外设的时钟
   LIB_USART_ENCLK();
