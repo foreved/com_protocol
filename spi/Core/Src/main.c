@@ -33,7 +33,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define size 100
+#define size 4096
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -67,6 +67,7 @@ int main(void)
 
   /* USER CODE BEGIN 1 */
   uint8_t buffer[size] = {0}, tbuffer[size] = {22, 45, 37};
+  uint32_t cnt = 0;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -120,13 +121,13 @@ int main(void)
     Mod_Flash_Read(tbuffer, 1, size);
     for (uint32_t i = 0; i < size; ++i)
     {
-      Lib_USART_Send_fString("%d, %d\n", buffer[i], tbuffer[i]);
+      // Lib_USART_Send_fString("%d, %d\n", buffer[i], tbuffer[i]);
       if (buffer[i] != tbuffer[i])
       {
-        Lib_USART_Send_String("Wrong.\nQuit.\n");
-        break;
+        cnt += 1;
       }
     }
+    Lib_USART_Send_fString("Wrong cnt: %d.\n", cnt);
   }
   /* USER CODE END 2 */
 
