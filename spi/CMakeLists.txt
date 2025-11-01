@@ -46,17 +46,11 @@ target_link_directories(${CMAKE_PROJECT_NAME} PRIVATE
 # Add sources to executable
 target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user sources here
-    ../libs/source/lib_spi.c
-    ../libs/source/lib_usart.c
-    ../libs/modules/mod_flash.c
 )
 
 # Add include paths
 target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     # Add user defined include paths
-    ../libs/include
-    ../libs/modules
-    .
 )
 
 # Add project symbols (macros)
@@ -68,8 +62,11 @@ target_compile_definitions(${CMAKE_PROJECT_NAME} PRIVATE
 list(REMOVE_ITEM CMAKE_C_IMPLICIT_LINK_LIBRARIES ob)
 
 # Add linked libraries
+add_subdirectory(../libs ${CMAKE_BINARY_DIR}/libs)
+add_subdirectory(../libs/fatfs ${CMAKE_BINARY_DIR}/fatfs)
 target_link_libraries(${CMAKE_PROJECT_NAME}
     stm32cubemx
-
+    fatfs
+    com_protocol
     # Add user defined libraries
 )

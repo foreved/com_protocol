@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "../libs/include",
-                "../libs/modules"
+                "../libs/fatfs"
             ],
             "defines": [
                 "STM32F103xB",

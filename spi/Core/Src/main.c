@@ -24,6 +24,7 @@
 #include "lib_spi.h"
 #include "mod_flash.h"
 #include "lib_usart.h"
+#include "ff.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -33,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define size 4096
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -66,8 +67,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-  uint8_t buffer[size] = {0}, tbuffer[size] = {22, 45, 37};
-  uint32_t cnt = 0;
+
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -104,31 +104,7 @@ int main(void)
   Lib_SPI_Init();
   Lib_USART_Init();
 
-  if (Mod_Flash_Read_JEDCE_ID() != MOD_FLASH_JEDEC_ID)
-  {
-    Lib_USART_Send_String("The flash is not detected.\nQuit.\n");
-  }
-  else
-  {
-    Lib_USART_Send_String("The flash is detected.\n");
-    for (uint32_t i = 0; i < size; ++i)
-    {
-      buffer[i] = i;
-    }
-    Mod_Flash_Erase_Sector(0);
-    Mod_Flash_Read(tbuffer, 0, size);
-    Mod_Flash_Write(buffer, 1, size);
-    Mod_Flash_Read(tbuffer, 1, size);
-    for (uint32_t i = 0; i < size; ++i)
-    {
-      // Lib_USART_Send_fString("%d, %d\n", buffer[i], tbuffer[i]);
-      if (buffer[i] != tbuffer[i])
-      {
-        cnt += 1;
-      }
-    }
-    Lib_USART_Send_fString("Wrong cnt: %d.\n", cnt);
-  }
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
