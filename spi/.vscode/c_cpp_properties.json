@@ -11,10 +11,10 @@
                 "STM32F103xB",
                 "USE_FULL_LL_DRIVER"
             ],
-            "compilerPath": "/opt/arm-none-eabi/bin/arm-none-eabi-gcc",
             "cStandard": "c17",
             "cppStandard": "gnu++17",
-            "intelliSenseMode": "linux-gcc-arm"
+            "intelliSenseMode": "linux-gcc-arm",
+            "compilerPath": "/opt/arm-none-eabi/bin/arm-none-eabi-gcc"
         }
     ],
     "version": 4
