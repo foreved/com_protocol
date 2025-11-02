@@ -28,7 +28,7 @@ DSTATUS disk_status (
 	BYTE pdrv		/* Physical drive nmuber to identify the drive */
 )
 {
-	DSTATUS stat;
+	DSTATUS stat = STA_NOINIT | STA_PROTECT; // FatFs 没有 STA_NODISK
 	int result;
 
 	switch (pdrv) {
@@ -37,7 +37,7 @@ DSTATUS disk_status (
 		if (result == MOD_FLASH_JEDEC_ID)
 		{
 			(void)stat;
-			return ~STA_NOINIT;
+			return ~stat; // 必须清除两个位, 因为 f_mkfs() 会检测这两个位
 		}
 		break;
 	}

@@ -250,6 +250,7 @@ void Lib_USART_Send_fString(const char * str, ...)
 
   int arg_int = 0;          // 整型参数
   double arg_double = 0.0;  // 浮点型
+  char* arg_str = (void*)0;     // 字符串
   uint8_t buffer[20] = {0}; // 缓冲区
   
   va_list ap;           // 声明ap容纳不定参数
@@ -262,6 +263,7 @@ void Lib_USART_Send_fString(const char * str, ...)
     {
       while (LL_USART_IsActiveFlag_TXE(LIB_USART) != SET);
       LL_USART_TransmitData8(LIB_USART, str[i]);
+      ++i;
     }
     else // 格式化字符
     {
@@ -272,18 +274,27 @@ void Lib_USART_Send_fString(const char * str, ...)
         case 'd':
           arg_int = va_arg(ap, int);
           Lib_USART_Int2Char_DEC(arg_int, buffer);
+          ++i;
           break;
         // 十六进制整型
         case 'x':
           arg_int = va_arg(ap, int);
           Lib_USART_Int2Char_HEX(arg_int, buffer);
+          ++i;
           break;
         // 浮点数
         case 'f':
           arg_double = va_arg(ap, double);
           // 默认打印3位小数
           Lib_USART_Double2Char(arg_double, buffer, 3);
+          ++i;
           break;
+        // 字符串
+        case 's':
+          arg_str = va_arg(ap, char*);
+          Lib_USART_Send_String(arg_str);
+          ++i;
+          continue;
         default:
           // 报错，待实现
           break;
@@ -295,7 +306,6 @@ void Lib_USART_Send_fString(const char * str, ...)
         LL_USART_TransmitData8(LIB_USART, buffer[i]);
       }
     }
-    ++i;
   }
   // 确保发送完成
   while (LL_USART_IsActiveFlag_TC(LIB_USART) != SET);

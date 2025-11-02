@@ -23,7 +23,7 @@ extern uint8_t Lib_USART_Buffer[LIB_USART_BUFFER_MAXSIZE];  // USART的缓冲区
 #define LIB_USART_PORT_ENCLK()   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA) // 使能GPIOA的时钟
 
 // USART的中断配置
-#define LIB_USART_IT_EN              0    // 是否启用中断
+#define LIB_USART_IT_EN              1    // 是否启用中断
 #define LIB_USART_IRQ                USART1_IRQn  // USART1的中断编号
 #define LIB_USART_PREEMPT_PRIORITY   0    // 抢占优先级
 #define LIB_USART_SUB_PRIORITY       0    // 子优先级
