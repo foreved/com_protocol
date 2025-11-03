@@ -9,7 +9,8 @@
             ],
             "defines": [
                 "STM32F103xB",
-                "USE_FULL_LL_DRIVER"
+                "USE_FULL_LL_DRIVER",
+                "LSE_VALUE=32768"
             ],
             "cStandard": "c17",
             "cppStandard": "gnu++17",

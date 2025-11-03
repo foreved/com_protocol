@@ -55,6 +55,12 @@ void Lib_RTC_Set_Time(const Lib_RTC_UnixType ts)
     LIB_RTC_WAIT_TASK();
 }
 
+Lib_RTC_UnixType Lib_RTC_Read_Time(void)
+{
+    LL_RTC_WaitForSynchro(LIB_RTC);
+    return (Lib_RTC_UnixType)LL_RTC_TIME_Get(LIB_RTC);
+}
+
 #if LIB_RTC_IT_EN
     uint8_t Lib_RTC_IT_SEC_Flag;
 
@@ -162,4 +168,44 @@ uint8_t Lib_RTC_Check_Same_Date(const Lib_RTC_DateType* const dt1, const Lib_RTC
     if (dt1->minute != dt2->minute) return 0;
     if (dt1->second != dt2->second) return 0;
     return 1;
+}
+
+Lib_RTC_UnixType Lib_RTC_Fat2Unix(const uint32_t fat)
+{
+    Lib_RTC_DateType dt = {0};
+    Lib_RTC_Fat2Date(fat, &dt);
+    return Lib_RTC_Date2Unix(&dt);
+}
+
+uint32_t Lib_RTC_Unix2Fat(const Lib_RTC_UnixType ts)
+{
+    Lib_RTC_DateType dt = {0};
+    Lib_RTC_Unix2Date(ts, &dt);
+    return Lib_RTC_Date2Fat(&dt);
+}
+
+void Lib_RTC_Fat2Date(const uint32_t fat, Lib_RTC_DateType* const dt)
+{
+    uint32_t fdate = (fat >> 16) & 0xFFFF;
+    uint32_t ftime = fat & 0xFFFF;
+
+    dt->year   = ((fdate >> 9) & 0x7F) + 1980;
+    dt->month  = (fdate >> 5) & 0xF;
+    dt->day    =  fdate & 0x1F;
+    dt->hour   = (ftime >> 11) & 0x1F;
+    dt->minute = (ftime >> 5) & 0x3F;
+    dt->second = (ftime & 0x1F) * 2;
+}
+
+uint32_t Lib_RTC_Date2Fat(const Lib_RTC_DateType* const dt)
+{
+    uint32_t fdate = 0, ftime = 0;
+
+    fdate = (((dt->year - 1980) & 0x7F) << 9) |
+            ((dt->month & 0xF) << 5) |
+            (dt->day & 0x1F);
+    ftime = ((dt->hour & 0x1F) << 11) | 
+            ((dt->minute & 0x3F) << 5) |
+            ((dt->second / 2) & 0x1F);
+    return (fdate << 16) | ftime;
 }

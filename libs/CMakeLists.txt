@@ -8,7 +8,8 @@ target_sources(com_protocol PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/source/mod_flash.c
     ${CMAKE_CURRENT_SOURCE_DIR}/source/lib_rtc.c
 )
-target_include_directories(com_protocol PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}/include
+target_include_directories(com_protocol
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/fatfs
 )
 target_link_libraries(com_protocol PRIVATE STM32_Drivers)

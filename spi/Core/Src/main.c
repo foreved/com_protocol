@@ -24,6 +24,7 @@
 #include "lib_spi.h"
 #include "mod_flash.h"
 #include "lib_usart.h"
+#include "lib_rtc.h"
 #include "ff.h"
 /* USER CODE END Includes */
 
@@ -56,7 +57,21 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+DWORD get_fattime(void)
+{
+  Lib_RTC_UnixType ts = Lib_RTC_Read_Time();
+  return Lib_RTC_Unix2Fat(ts);
+}
 
+void check_time(const char* const str)
+{
+  FILINFO file = {0};
+  Lib_RTC_DateType dt = {0};
+  f_stat(str, &file);
+  Lib_RTC_Fat2Date((file.fdate << 16) | file.ftime, &dt);
+  Lib_USART_Send_fString("The file is created on %d-%d-%d, %d:%d:%d\n", dt.year, dt.month, dt.day, 
+                                                                  dt.hour, dt.minute, dt.second);
+}
 /* USER CODE END 0 */
 
 /**
@@ -106,6 +121,7 @@ int main(void)
   LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOA);
   /* USER CODE BEGIN 2 */
   Lib_USART_Init();
+  Lib_RTC_Init();
 
   // 文件系统格式化
   fres = f_mount(&fs, "0:", 1); // 将逻辑驱动器挂载到 FATFS
@@ -170,6 +186,7 @@ int main(void)
     {
       Lib_USART_Send_fString("Succeed to read %d bytes.\n", fnum);
       Lib_USART_Send_fString("The data is\n\t %s\n", fbuffer);
+      check_time("0:/test.txt");
     }
     else
     {
@@ -213,6 +230,24 @@ void SystemClock_Config(void)
   {
 
   }
+  LL_PWR_EnableBkUpAccess();
+  if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
+  {
+    LL_RCC_ForceBackupDomainReset();
+    LL_RCC_ReleaseBackupDomainReset();
+  }
+  LL_RCC_LSE_Enable();
+
+   /* Wait till LSE is ready */
+  while(LL_RCC_LSE_IsReady() != 1)
+  {
+
+  }
+  if(LL_RCC_GetRTCClockSource() != LL_RCC_RTC_CLKSOURCE_LSE)
+  {
+    LL_RCC_SetRTCClockSource(LL_RCC_RTC_CLKSOURCE_LSE);
+  }
+  LL_RCC_EnableRTC();
   LL_RCC_PLL_ConfigDomain_SYS(LL_RCC_PLLSOURCE_HSE_DIV_1, LL_RCC_PLL_MUL_9);
   LL_RCC_PLL_Enable();
 
@@ -221,8 +256,8 @@ void SystemClock_Config(void)
   {
 
   }
-  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_2);
-  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_1);
+  LL_RCC_SetAHBPrescaler(LL_RCC_SYSCLK_DIV_1);
+  LL_RCC_SetAPB1Prescaler(LL_RCC_APB1_DIV_2);
   LL_RCC_SetAPB2Prescaler(LL_RCC_APB2_DIV_1);
   LL_RCC_SetSysClkSource(LL_RCC_SYS_CLKSOURCE_PLL);
 
@@ -231,8 +266,8 @@ void SystemClock_Config(void)
   {
 
   }
-  LL_Init1msTick(36000000);
-  LL_SetSystemCoreClock(36000000);
+  LL_Init1msTick(72000000);
+  LL_SetSystemCoreClock(72000000);
 }
 
 /* USER CODE BEGIN 4 */
