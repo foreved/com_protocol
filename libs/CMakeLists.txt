@@ -6,6 +6,7 @@ target_sources(com_protocol PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/source/lib_usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/source/lib_spi.c
     ${CMAKE_CURRENT_SOURCE_DIR}/source/mod_flash.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/lib_rtc.c
 )
 target_include_directories(com_protocol PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/include

@@ -1,6 +1,5 @@
 #include "lib_usart.h"
-
-uint8_t Lib_USART_Buffer[LIB_USART_BUFFER_MAXSIZE];
+#include <stdarg.h>
 
 void Lib_USART_Init(void)
 {
@@ -13,7 +12,6 @@ void Lib_USART_Init(void)
   // 开启外设的时钟
   LIB_USART_ENCLK();
   LIB_USART_PORT_ENCLK();
-  LIB_USART_DMA_ENCLK();
 
   // TX为复用推挽输出
   gpio_config.Pin = LIB_USART_TX_PIN;
@@ -54,6 +52,8 @@ void Lib_USART_Init(void)
 
   // 配置DMA
   #if LIB_USART_DMA_EN
+    LIB_USART_DMA_ENCLK();
+
     dma_config.Priority = LIB_USART_DMA_PRIORITY;
     dma_config.Direction = LIB_USART_DMA_DIRECTION;
     dma_config.Mode = LIB_USART_DMA_MODE;
@@ -313,13 +313,58 @@ void Lib_USART_Send_fString(const char * str, ...)
   va_end(ap);           // 释放ap
 }
 
-// USART的中断服务函数
-void Lib_USART_IT_Handler(void)
-{
-  uint8_t tmp = 0;
-  if (LL_USART_IsActiveFlag_RXNE(LIB_USART) == SET)
-  {
-    tmp = LL_USART_ReceiveData8(LIB_USART);
-    Lib_USART_Send_fString("RX IT: %x\n", tmp);
-  }
-}
+#if LIB_USART_IT_EN
+  uint8_t Lib_USART_Buffer[LIB_USART_BUFFER_MAXSIZE];
+  #if LIB_USART_CMD_EN
+    uint8_t Lib_USART_CMD_Status1;        // bit 0: 是否进入指令模式, bit 1: 是否使用缓冲区
+    uint8_t Lib_USART_CMD_Status2;        // bit 2: 0x03
+    uint32_t Lib_USART_CMD_Data;
+    void Lib_USART_IT_Handler(void)
+    {
+      uint8_t data = 0;
+      if (LL_USART_IsActiveFlag_RXNE(LIB_USART) == SET)
+      {
+        data = LL_USART_ReceiveData8(LIB_USART);
+        if ((Lib_USART_CMD_Status1 & 0x02))
+        {
+
+        }
+
+        if ((Lib_USART_CMD_Status1 & 0x01))
+        {
+          if ()
+          switch (data)
+          {
+            case LIB_USART_CMD_STOP:
+              Lib_USART_CMD_Status1 &= ~0x01;
+              Lib_USART_CMD_Status2 = 0;
+              break;
+            case LIB_USART_CMD_RTC_UNIX:
+              Lib_USART_CMD_Status2 |= 0x03;
+              break;
+          }
+        }
+        else
+        {
+          swtich (data)
+          {
+            case LIB_USART_CMD_START:
+              Lib_USART_CMD_Status1 |= 0x01;
+              break;
+          }
+        }
+        Lib_USART_Send_Byte(LIB_USART_CMD_ACK);
+      }
+    }
+  #else
+    void Lib_USART_IT_Handler(void)
+    {
+      uint8_t tmp = 0;
+      if (LL_USART_IsActiveFlag_RXNE(LIB_USART) == SET)
+      {
+        tmp = LL_USART_ReceiveData8(LIB_USART);
+        Lib_USART_Send_fString("RX IT: %x\n", tmp);
+      }
+    }
+  #endif
+#endif
