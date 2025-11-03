@@ -1,0 +1,13 @@
+{
+    "files.associations": {
+        "stm32f1xx_ll_bus.h": "c",
+        "stm32f1xx_ll_pwr.h": "c",
+        "lib_rtc.h": "c",
+        "lib_usart.h": "c",
+        "compare": "c",
+        "stdint.h": "c",
+        "stm32f1xx_ll_gpio.h": "c",
+        "stm32f1xx_ll_usart.h": "c",
+        "stm32f1xx_ll_rtc.h": "c"
+    }
+}
