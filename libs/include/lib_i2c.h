@@ -10,6 +10,9 @@
 #define LIB_I2C_ENCLK()       LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_I2C1)
 #define LIB_I2C_SPEED         400000 // SCL时钟频率，必须不高于400kHz
 #define LIB_I2C_ADDR          0x01   // I2C的地址，必须是唯一的，且在[0x00, 0x3FF]
+#define LIB_I2C_BUFFER_SIZE   100
+extern uint8_t LIB_I2C_BUFFER[LIB_I2C_BUFFER_SIZE];
+extern uint8_t LIB_I2C_PBUFFER;
 
 // GPIO配置
 #define LIB_I2C_SCL_PORT      GPIOB  // I2C1_SCL为PB6
@@ -18,6 +21,10 @@
 #define LIB_I2C_SDA_PIN       LL_GPIO_PIN_7
 #define LIB_I2C_PORT_ENCLK()  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_GPIOB)
 
+#define Lib_I2C_Set_Write(addr)     ((addr << 1) | 0)
+#define Lib_I2C_Set_Read(addr)      ((addr << 1) | 1)
 void Lib_I2C_Init(void);
+void Lib_I2C_Send_Data(const uint8_t slave_addr, const uint8_t *const buffer, const uint32_t num);
+void Lib_I2C_Receive_Data(const uint8_t slave_addr, uint8_t *const buffer, const uint32_t num);
 
 #endif
