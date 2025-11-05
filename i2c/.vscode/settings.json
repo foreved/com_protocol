@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "lib_i2c.h": "c",
+        "mod_oled.h": "c",
+        "ascii.h": "c"
+    },
+    "cortex-debug.variableUseNaturalFormat": false
+}
