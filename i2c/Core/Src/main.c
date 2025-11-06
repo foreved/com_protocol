@@ -101,11 +101,11 @@ int main(void)
   MX_GPIO_Init();
   /* USER CODE BEGIN 2 */
   Lib_I2C_Init();
-  Mod_Oled_Display_Control(1);
-  Mod_Oled_Set_Addr_Mode(MOD_OLED_CMD_MOD_HORIZONTAL);
-  Mod_Oled_Set_Page(0, 7);
-  Mod_Oled_Set_Column(0, 127);
-  Mod_Oled_Show_String(arr);
+  Mod_Oled_Power_Up();
+  Mod_Oled_Full_Screen();
+  Mod_Oled_Clear_Screen();
+  Mod_Oled_Show_String(0, 0, arr);
+  
   /* USER CODE END 2 */
 
   /* Infinite loop */
