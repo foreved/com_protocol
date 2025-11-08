@@ -10,6 +10,7 @@ target_sources(com_protocol PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/source/lib_i2c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/source/mod_oled.c
     ${CMAKE_CURRENT_SOURCE_DIR}/source/lib_tool.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/source/mod_dht11.c
 )
 target_include_directories(com_protocol
     PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include

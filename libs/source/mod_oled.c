@@ -31,7 +31,7 @@ void Mod_Oled_Power_Up(void)
         0xA6,
         0x8D, 0x14
     };
-    Lib_Tool_Delay_ms(1000);
+    Lib_Tool_SysTick_Delay_ms(1000);
     Mod_Oled_Send_Data(cmd_list, sizeof(cmd_list));
     Mod_Oled_Clear_Screen();
     Mod_Oled_Display_Control(1);
@@ -127,7 +127,7 @@ void Mod_Oled_Show_String(const uint8_t page, const uint8_t column, const char* 
             addr_column = 0;
             if (addr_page > 7) addr_page = 0;
         }
-        Lib_Tool_Delay_ms(100);
+        Lib_Tool_SysTick_Delay_ms(100);
     }
 }
 
