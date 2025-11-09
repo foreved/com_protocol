@@ -1,0 +1,12 @@
+{
+    "files.associations": {
+        "lib_i2c.h": "c",
+        "mod_oled.h": "c",
+        "ascii.h": "c",
+        "stm32f1xx_ll_cortex.h": "c",
+        "stm32f1xx_ll_bus.h": "c",
+        "stm32f1xx_ll_gpio.h": "c",
+        "lib_usart.h": "c"
+    },
+    "cortex-debug.variableUseNaturalFormat": true
+}

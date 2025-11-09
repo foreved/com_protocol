@@ -1,0 +1,22 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "../libs/include",
+                "../libs/fatfs"
+            ],
+            "defines": [
+                "STM32F103xB",
+                "USE_FULL_LL_DRIVER",
+                "LSE_VALUE=32768"
+            ],
+            "cStandard": "c17",
+            "cppStandard": "gnu++17",
+            "intelliSenseMode": "linux-gcc-arm",
+            "compilerPath": "/opt/arm-none-eabi/bin/arm-none-eabi-gcc"
+        }
+    ],
+    "version": 4
+}
