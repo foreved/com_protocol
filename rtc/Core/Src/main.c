@@ -104,19 +104,19 @@ int main(void)
   // Lib_USART_Send_fString("%d\n", LL_RTC_GetDivider(LIB_RTC));
   while (1)
   {
-    if (Lib_RTC_IT_SEC_Flag == SET)
-    {
-      // Lib_USART_Send_fString("%d\n", LL_RTC_GetDivider(LIB_RTC));
-      ts = LL_RTC_TIME_Get(LIB_RTC);
-      Lib_RTC_Unix2Date(ts, &dt);
-      Lib_USART_Send_fString("%d-%d-%d, %d:%d:%d\n", dt.year,
-                                                     dt.month,
-                                                     dt.day, 
-                                                     dt.hour,
-                                                     dt.minute,
-                                                     dt.second);
-      Lib_RTC_IT_SEC_Flag = RESET;
-    }
+    // if (Lib_RTC_IT_SEC_Flag == SET)
+    // {
+    //   // Lib_USART_Send_fString("%d\n", LL_RTC_GetDivider(LIB_RTC));
+    //   ts = LL_RTC_TIME_Get(LIB_RTC);
+    //   Lib_RTC_Unix2Date(ts, &dt);
+    //   Lib_USART_Send_fString("%d-%d-%d, %d:%d:%d\n", dt.year,
+    //                                                  dt.month,
+    //                                                  dt.day, 
+    //                                                  dt.hour,
+    //                                                  dt.minute,
+    //                                                  dt.second);
+    //   Lib_RTC_IT_SEC_Flag = RESET;
+    // }
   }
 }
 

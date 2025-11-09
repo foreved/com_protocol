@@ -7,6 +7,9 @@
         "stm32f1xx_ll_dma.h": "c",
         "lib_spi.h": "c",
         "stm32f1xx_ll_spi.h": "c",
-        "mod_flash.h": "c"
+        "mod_flash.h": "c",
+        "lib_rtc.h": "c",
+        "ff.h": "c",
+        "ffconf.h": "c"
     }
 }

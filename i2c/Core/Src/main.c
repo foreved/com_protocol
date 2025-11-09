@@ -103,9 +103,29 @@ int main(void)
   Lib_I2C_Init();
   Mod_Oled_Power_Up();
   Mod_Oled_Full_Screen();
+  LL_mDelay(1000);
   Mod_Oled_Clear_Screen();
-  Mod_Oled_Show_String(0, 0, arr);
-  
+  Mod_Oled_Show_String((Mod_Oled_Pos_Type){0, 0}, arr);
+  LL_mDelay(1000);
+
+  Mod_Oled_Pos_Type pos = {0, 0}; // 起始坐标
+
+  Mod_Oled_Clear_Screen();
+  // 显示整数
+  pos = Mod_Oled_Show_fString(pos, "Temperature: %d C", 25);
+  LL_mDelay(100);
+  // 显示浮点数
+  pos = Mod_Oled_Show_fString(pos, "Voltage: %.1f V", 3.3f);
+  LL_mDelay(100);
+  // 显示十六进制
+  pos = Mod_Oled_Show_fString(pos, "Error: %x", 0x1A);
+  LL_mDelay(100);
+  // 显示字符串
+  pos = Mod_Oled_Show_fString(pos, "Status: %s", "OK");
+  LL_mDelay(100);
+  // 混合类型
+  pos = Mod_Oled_Show_fString(pos, "%s: %d, Hex: %x, Float: %.2f", "Sensor", 123, 123, 4.56);
+  LL_mDelay(100);
   /* USER CODE END 2 */
 
   /* Infinite loop */
