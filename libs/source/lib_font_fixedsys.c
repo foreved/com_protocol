@@ -1,7 +1,4 @@
-#ifndef _ASCII_H
-#define _ASCII_H
-
-#include <stdint.h>
+#include "lib_font.h"
 
 // 字体: fixedsys; 字符集: ASCII; 每个字符的宽x高: 8 bitx16 bit
 // 列行式, LSB 在上, 阳码
@@ -197,5 +194,3 @@ const uint8_t Fixedsys_ASCII_Chars_8x16[][16] =
 
     {0x30,0x18,0x08,0x18,0x30,0x20,0x30,0x18,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},/*"~",94*/
 };
-
-#endif

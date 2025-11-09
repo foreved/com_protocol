@@ -22,6 +22,7 @@ uint32_t Mod_Flash_Read_JEDCE_ID(void);
 ErrorStatus Mod_Flash_Erase_Sector(const uint32_t addr);
 void Mod_Flash_Write(const uint8_t *const pbuffer, const uint32_t addr, const uint32_t num_write);
 void Mod_Flash_Read(uint8_t * const pbuffer, const uint32_t addr, const uint32_t num_read);
+void Mod_Flash_FatFs_Check(FATFS *fs);
 
 // W25Q64 指令
 #define MOD_FLASH_W25Q64_WRITE_ENABLE							0x06

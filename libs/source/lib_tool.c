@@ -23,9 +23,6 @@ void Lib_Tool_SysTick_Init(void)
     SysTick->LOAD = LIB_TOOL_AHB_FREQUENCY / 1000 - 1; // 1 ms
     SysTick->VAL = 0;
     SysTick->CTRL |= SysTick_CTRL_ENABLE_Msk | SysTick_CTRL_CLKSOURCE_Msk; // 使用 AHB, 并开启 SysTick
-
-    // SysTick 已开启
-    LIB_TOOL_STATUS |= LIB_TOOL_STATUS_SYSTICK_Mask;
 }
 
 /*
@@ -38,16 +35,13 @@ void Lib_Tool_SysTick_Init(void)
 */
 void Lib_Tool_SysTick_Delay_ms(const uint16_t num_ms)
 {
-    // SysTick 未开启
-    if (!(LIB_TOOL_STATUS & LIB_TOOL_STATUS_SYSTICK_Mask))
-        Lib_Tool_SysTick_Init();
-
+    SysTick->VAL = 0;
     for (uint16_t i = 0; i < num_ms; ++i)
         while ((SysTick->CTRL & SysTick_CTRL_COUNTFLAG_Msk) == 0);
 }
 
 /*
- * @brief   开启 DWT
+ * @brief   开启 DWT, 时基时 1/LIB_TOOL_AHB_FREQUENCY
  * @param   无
  * @return  无
 */
@@ -70,34 +64,16 @@ void Lib_Tool_DWT_Init(void)
  * @return  无
  * @note    1) 使用前要正确配置 DWT 的时钟源频率, lib_tool.h 中的 LIB_TOOL_AHB_FREQUENCY.
  *          2) 使用前必须已经开启 DWT 
- *          2) 推荐场景: 高精度, 短期, 毫秒级延时
+ *          2) 推荐场景: 高精度, 短期, 微秒级延时
 */
 void Lib_Tool_DWT_Delay_us(const uint16_t num_us)
 {
-    // DWT 未开启
-    if (!(LIB_TOOL_STATUS &= LIB_TOOL_STATUS_DWT_Mask))
-        Lib_Tool_DWT_Init();
-
     // 不清零也可以, 因为是无符号数
     // e.g. 0x00000003−0xFFFFFFFE=0x00000005
     uint32_t start = DWT->CYCCNT;
     // num_us 对应的 DWT 计数器的计时数
     uint32_t ticks = LIB_TOOL_AHB_FREQUENCY / 1000000 * num_us;
     while ((DWT->CYCCNT - start) < ticks);
-}
-
-/*
- * @brief   使用 DWT 实现计时器, 开始计时, 与 Lib_Tool_DWT_Timer_End() 一起使用
- * @param   无
- * @return  uint32_t
- * @note    推荐场景: 高精度, 微妙级或毫秒级, 短期计时
-*/
-uint32_t Lib_Tool_DWT_Timer_Start(void)
-{
-    // DWT 未开启
-    // if (!(LIB_TOOL_STATUS &= LIB_TOOL_STATUS_DWT_Mask))
-    //     Lib_Tool_DWT_Init();
-    return DWT->CYCCNT;
 }
 
 /*
@@ -122,4 +98,15 @@ uint32_t Lib_Tool_DWT_Timer_End(const uint32_t start, const uint8_t is_us)
     {
         return (uint32_t)((uint64_t)ticks * 1000 / LIB_TOOL_AHB_FREQUENCY);
     }
+}
+
+/*
+ * @brief   初始化 SysTick, DWT
+ * @param   无
+ * @return  无
+*/
+void Lib_Tool_Init(void)
+{
+    Lib_Tool_SysTick_Init();
+    Lib_Tool_DWT_Init();
 }

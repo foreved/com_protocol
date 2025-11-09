@@ -1,7 +1,20 @@
 #include "mod_dht11.h"
 #include "lib_tool.h"
 #include "lib_usart.h"
+#include "lib_i2c.h"
+#include "mod_oled.h"
+#include "lib_spi.h"
+#include "mod_flash.h"
+#include "ff.h"
 
+/*
+ * @brief   实时温湿度数据, 2s 更新一次
+*/
+Mod_DHT11_Data_Type Real_Time_TempHumi;
+
+static void Mod_DHT11_GPIO_Init(void);
+static void Mod_DHT11_Change_Output_Type(const uint8_t opt);
+static Mod_DHT11_Data_Type Mod_DHT11_Once_Com(void);
 static void Mod_DHT11_Error(const Mod_DHT11_Error_Type error_idx);
 
 /*
@@ -33,7 +46,7 @@ static void Mod_DHT11_Error(const Mod_DHT11_Error_Type error_idx);
  * @return  无
  * @note    使用前, 需要在 mod_dht11.h 中修改 GPIO 相关配置
 */
-void Mod_DHT11_GPIO_Init(void)
+static void Mod_DHT11_GPIO_Init(void)
 {
     LL_GPIO_InitTypeDef gpio_config = {0};
 
@@ -57,7 +70,7 @@ void Mod_DHT11_GPIO_Init(void)
  *              -1: 上拉输入
  * @return  无
 */
-void Mod_DHT11_Change_Output_Type(const uint8_t opt)
+static void Mod_DHT11_Change_Output_Type(const uint8_t opt)
 {
     if (opt) // 上拉输入
     {
@@ -85,9 +98,9 @@ void Mod_DHT11_Change_Output_Type(const uint8_t opt)
  *          7) T_h1: 有效数据 1 高电平时间 [68us, 74us], 典型值是 71 us
  *          8) T_en: DHT11 释放总线时间 [52us, 56us], 典型值是 54us
 */
-Mod_DHT11_Data_Type Mod_DHT11_Once_Com(void)
+static Mod_DHT11_Data_Type Mod_DHT11_Once_Com(void)
 {   
-    uint32_t start1 = 0, start2, num_us = 0;
+    uint32_t start1 = 0, start2 = 0, num_us = 0;
     Mod_DHT11_Data_Type res = {0};
     uint8_t tmp[5], sum = 0;
     
@@ -127,15 +140,15 @@ Mod_DHT11_Data_Type Mod_DHT11_Once_Com(void)
         {
             // 有效数据位标志低电平
             while (Mod_DHT11_Data_Read() == RESET);
-            start1 = Lib_Tool_DWT_Timer_Start();          // T_h 计时开始
+            start1 = Lib_Tool_DWT_Timer_Start();          // T_h0/T_h1 计时开始
             num_us = Lib_Tool_DWT_Timer_End(start2, 1);   // T_low 计时结束
             // 判断 T_low
-            if (num_us < 50 || num_us > 58) Lib_USART_Send_fString("Error: flag  %d and %d\n", i, j);
+            if (num_us < 50 || num_us > 58) Mod_DHT11_Error(T_LOW_ERROR);
 
             // 有效数据位
             while (Mod_DHT11_Data_Read() == SET);
-            start2 = Lib_Tool_DWT_Timer_Start();
-            num_us = Lib_Tool_DWT_Timer_End(start1, 1);   // T_h 计时结束
+            start2 = Lib_Tool_DWT_Timer_Start();          // T_low 计时开始 或 T_en 计时开始
+            num_us = Lib_Tool_DWT_Timer_End(start1, 1);   // T_h0/T_h1 计时结束
             // 判断数据
             if (num_us >= 23 && num_us <= 27) // 有效数据 0
             {
@@ -147,33 +160,32 @@ Mod_DHT11_Data_Type Mod_DHT11_Once_Com(void)
             }
             else
             {
-                Lib_USART_Send_fString("Error:  %d and %d\n", i, j);
+                // T_H0_ERROR 和 T_H1_ERROR 都可以
+                Mod_DHT11_Error(T_H0_ERROR);
             }
         }
+        // 湿度整数+湿度小数+温度整数+温度小数
         if (i < 4)
             sum += tmp[i];
     }
 
     // DHT11 释放总线
-    // start1 = Lib_Tool_DWT_Timer_Start();        // T_en 计时开始
     while (Mod_DHT11_Data_Read() == RESET);
     num_us = Lib_Tool_DWT_Timer_End(start2, 1); // T_en 计时结束
     if (num_us < 52 || num_us > 56) Mod_DHT11_Error(T_EN_ERROR);
+    // 通信结束, 主机变回开漏输出
     Mod_DHT11_Change_Output_Type(0);
 
     // 数据处理
-    if (sum != tmp[4]) Lib_USART_Send_String("Error: wrong data\n");
-    res.humi_int = tmp[0];
-    res.humi_frac = tmp[1];
+    if (sum != tmp[4]) Mod_DHT11_Error(DATA_ERROR);  // 校验数据错误
+    res.humi = (uint16_t)tmp[0] * 10 + tmp[1];
     if (tmp[3] & 0x8) // 温度小数部分 MSB 为 1, 表示负温度
     {
-        res.temp_int = -tmp[2];
-        res.temp_frac = tmp[3] & (~0x8);
+        res.temp = -((int16_t)tmp[2] * 10 + (tmp[3] & (~0x8)));
     }
     else
     {
-        res.temp_int = tmp[2];
-        res.temp_frac = tmp[3];
+        res.temp = (int16_t)tmp[2] * 10 + tmp[3];
     }
 
     return res;
@@ -181,34 +193,121 @@ Mod_DHT11_Data_Type Mod_DHT11_Once_Com(void)
 
 static void Mod_DHT11_Error(const Mod_DHT11_Error_Type error_idx)
 {
-    Lib_USART_Send_fString("Error idx: %x\n", error_idx);
+    switch (error_idx)
+    {
+        case T_BE_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_be is wrong.\n", error_idx);
+            break;
+        case T_GO_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_go is wrong.\n", error_idx);
+            break;
+        case T_REL_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_rel is wrong.\n", error_idx);
+            break;
+        case T_REH_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_reh is wrong.\n", error_idx);
+            break;
+        case T_LOW_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_low is wrong.\n", error_idx);
+            break;
+        case T_H0_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_h0 is wrong.\n", error_idx);
+            break;
+        case T_H1_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_h1 is wrong.\n", error_idx);
+            break;
+        case T_EN_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: T_en is wrong.\n", error_idx);
+            break;
+        case DATA_ERROR:
+            Lib_USART_Send_fString("Mod_DHT11_Error <%d>: data is wrong.\n", error_idx);
+            break;
+    }
+
     while (1);
 }
 
+// 返回绝对值
+#define    Mod_DHT11_Abs(num)      (num < 0 ? -num : num)
+
 /*
- * @brief   DHT11 温湿度传感器的任务
+ * @brief   DHT11 温湿度传感器的任务: 读取实时温湿度数据, 周期为2s.
  * @param   无
  * @return  无
 */
 void Mod_DHT11_Task(void)
 {
-    Mod_DHT11_Data_Type res = {0};
+    Mod_Oled_Pos_Type pos = {0, 0};
+    FATFS fs;
 
-    Lib_Tool_DWT_Init();
+    Lib_Tool_Init();
+    Lib_USART_Init();
+    // OLED
+    Lib_I2C_Init();
+    Mod_Oled_Power_Up();
+    // Flash
+    Lib_SPI_Init();
+    // FatFs
+    Mod_Flash_FatFs_Check(&fs);
+    Mod_DHT11_Log_Init("0:/DHT11");
+
     // 配置 DATA 总线
     Mod_DHT11_GPIO_Init();     // 主机开漏输出, DHT11 输入
-    // DHT11 上电后, 需要等待 1s
-    Lib_Tool_SysTick_Delay_ms(1000);
-    
-    res = Mod_DHT11_Once_Com();
+    // DHT11 上电后, 需要等待 2s
     Lib_Tool_SysTick_Delay_ms(2000);
+    
     while (1)
     {
         // 连续读取两次数据, 获得此时的温湿度数据
-        res = Mod_DHT11_Once_Com();
-        Lib_USART_Send_fString("Temperature: %d.%d\n", res.temp_int, res.temp_frac);
-        Lib_USART_Send_fString("Humidity: %d.%d\n\n", res.humi_int, res.humi_frac);
+        Real_Time_TempHumi = Mod_DHT11_Once_Com();
+        Lib_Tool_SysTick_Delay_ms(100); // 间隔 100ms, 采集数据
+        Real_Time_TempHumi = Mod_DHT11_Once_Com();
+        
+        // 上位机显示
+        Lib_USART_Send_fString("Temperature: %d.%d\n", Real_Time_TempHumi.temp / 10, Mod_DHT11_Abs(Real_Time_TempHumi.temp % 10));
+        Lib_USART_Send_fString("Humidity: %d.%d\n\n", Real_Time_TempHumi.humi / 10, Real_Time_TempHumi.humi % 10);
+        
+        // OLED 显示
+        Mod_Oled_Clear_Screen();
+        pos = (Mod_Oled_Pos_Type){0, 0};
+        pos = Mod_Oled_Show_fString(pos, "Temp: %d.%d deg", Real_Time_TempHumi.temp / 10, Mod_DHT11_Abs(Real_Time_TempHumi.temp % 10));
+        pos = (Mod_Oled_Pos_Type){pos.page += 2, 0};
+        pos = Mod_Oled_Show_fString(pos, "Humi: %d.%d%%", Real_Time_TempHumi.humi / 10, Real_Time_TempHumi.humi % 10);
+
         // 读取间隔大于 2s
         Lib_Tool_SysTick_Delay_ms(2000);
     }
+}
+
+void Mod_DHT11_Log_Init(const TCHAR* path)
+{
+    FRESULT fres;
+    DIR dir;
+
+    fres = f_opendir(&dir, path);
+    if (fres == FR_NO_PATH)
+    {
+        Lib_USART_Send_String("There is no log. Initizlize.\n");
+        fres = f_mkdir(path);
+        if (fres != FR_OK)
+        {
+            Lib_USART_Send_fString("Error: fail to initizlize logs. FRESULT is %d Stop...\n", fres);
+            while (1);
+        }
+    }
+    else if (fres != FR_OK)
+    {
+        Lib_USART_Send_fString("Error: FRESULT is %d. Stop...\n", fres);
+        while (1);
+    }
+    Lib_USART_Send_String("Succeed to initialize logs.\n");
+}
+
+void Mod_DHT11_Log_Append(const Mod_DHT11_Data_Type data, const TCHAR* path)
+{
+    FIL file;
+    FRESULT fres;
+
+    fres = f_open(&file, path, FA_OPEN_APPEND | FA_WRITE);
+    f_write()
 }

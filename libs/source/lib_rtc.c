@@ -1,8 +1,11 @@
 #include "lib_rtc.h"
-#include "lib_usart.h"
 
+// 任何修改 RTC 的操作必须等待上一个操作完成, 即 RTOF 被置位
 #define LIB_RTC_WAIT_TASK()     do {} while(LL_RTC_IsActiveFlag_RTOF(LIB_RTC) != SET)
 
+/*
+ * @brief   初始化 RTC
+*/
 void Lib_RTC_Init(void)
 {   
     // RTC 位于 BKP 区, 所以使能 BKP
@@ -41,6 +44,10 @@ void Lib_RTC_Init(void)
     LIB_RTC_WAIT_TASK();
 }
 
+/*
+ * @brief   使用 Unix 时间戳设置计数器
+ * @param   ts Unix 时间戳
+*/
 void Lib_RTC_Set_Time(const Lib_RTC_UnixType ts)
 {
     // 进行配置前, 必须进入配置模式
@@ -55,12 +62,17 @@ void Lib_RTC_Set_Time(const Lib_RTC_UnixType ts)
     LIB_RTC_WAIT_TASK();
 }
 
+/*
+ * @brief   读取现在的 RTC 时间
+ * @return  返回数据为 Unix 时间戳
+*/
 Lib_RTC_UnixType Lib_RTC_Read_Time(void)
 {
     LL_RTC_WaitForSynchro(LIB_RTC);
     return (Lib_RTC_UnixType)LL_RTC_TIME_Get(LIB_RTC);
 }
 
+// RTC 中断函数
 #if LIB_RTC_IT_EN
     uint8_t Lib_RTC_IT_SEC_Flag;
 
@@ -75,10 +87,15 @@ Lib_RTC_UnixType Lib_RTC_Read_Time(void)
     }
 #endif
 
-// Unix 时间戳
+
 static const int days_in_month[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 #define is_leap_year(year)  ((year % 4 == 0 && year % 100 != 0) || (year % 400 == 0))
 
+/*
+ * @brief   日期转 Unix 时间戳
+ * @param   dt 日期
+ * @return  对应的 Unix 时间戳
+*/
 Lib_RTC_UnixType Lib_RTC_Date2Unix(const Lib_RTC_DateType *dt)
 {
     int64_t total_days = 0, res = 0;
@@ -110,6 +127,11 @@ Lib_RTC_UnixType Lib_RTC_Date2Unix(const Lib_RTC_DateType *dt)
         return (Lib_RTC_UnixType)res;
 }
 
+/*
+ * @brief   Unix 时间戳转日期
+ * @param   ts Unix 时间戳
+ *          dt 相应的日期
+*/
 void Lib_RTC_Unix2Date(const Lib_RTC_UnixType ts, Lib_RTC_DateType* const dt)
 {
     int64_t modified_ts = (int64_t)ts + LIB_RTC_TIMEZONE * 3600;
@@ -159,6 +181,11 @@ void Lib_RTC_Unix2Date(const Lib_RTC_UnixType ts, Lib_RTC_DateType* const dt)
     dt->day = total_days + 1;
 }
 
+/*
+ * @brief   检查两个日期是否是同一天
+ * @param   dt1, dt2 两个日期
+ * @return  0: 不是同一天; 1: 是同一天.
+*/
 uint8_t Lib_RTC_Check_Same_Date(const Lib_RTC_DateType* const dt1, const Lib_RTC_DateType* const dt2)
 {
     if (dt1->year != dt2->year) return 0;
@@ -170,21 +197,30 @@ uint8_t Lib_RTC_Check_Same_Date(const Lib_RTC_DateType* const dt1, const Lib_RTC
     return 1;
 }
 
-Lib_RTC_UnixType Lib_RTC_Fat2Unix(const uint32_t fat)
+/*
+ * @brief   Fat 时间戳转 Unix 时间戳
+*/
+Lib_RTC_UnixType Lib_RTC_Fat2Unix(const Lib_RTC_FatType fat)
 {
     Lib_RTC_DateType dt = {0};
     Lib_RTC_Fat2Date(fat, &dt);
     return Lib_RTC_Date2Unix(&dt);
 }
 
-uint32_t Lib_RTC_Unix2Fat(const Lib_RTC_UnixType ts)
+/*
+ * @brief   Unix 时间戳转 Fat 时间戳
+*/
+Lib_RTC_FatType Lib_RTC_Unix2Fat(const Lib_RTC_UnixType ts)
 {
     Lib_RTC_DateType dt = {0};
     Lib_RTC_Unix2Date(ts, &dt);
     return Lib_RTC_Date2Fat(&dt);
 }
 
-void Lib_RTC_Fat2Date(const uint32_t fat, Lib_RTC_DateType* const dt)
+/*
+ * @brief   Fat 时间戳转日期
+*/
+void Lib_RTC_Fat2Date(const Lib_RTC_FatType fat, Lib_RTC_DateType* const dt)
 {
     uint32_t fdate = (fat >> 16) & 0xFFFF;
     uint32_t ftime = fat & 0xFFFF;
@@ -197,7 +233,10 @@ void Lib_RTC_Fat2Date(const uint32_t fat, Lib_RTC_DateType* const dt)
     dt->second = (ftime & 0x1F) * 2;
 }
 
-uint32_t Lib_RTC_Date2Fat(const Lib_RTC_DateType* const dt)
+/*
+ * @brief   日期转 Fat 时间戳
+*/
+Lib_RTC_FatType Lib_RTC_Date2Fat(const Lib_RTC_DateType* const dt)
 {
     uint32_t fdate = 0, ftime = 0;
 
@@ -209,3 +248,15 @@ uint32_t Lib_RTC_Date2Fat(const Lib_RTC_DateType* const dt)
             ((dt->second / 2) & 0x1F);
     return (fdate << 16) | ftime;
 }
+
+/*
+ * @brief   若 FatFs 的 FF_FS_NORTC == 0, 则使用 get_fattime() 获得时间戳
+ * @return  从 RTC 获得 Unix 时间戳后, 转成 Fat 时间戳
+*/
+#if (!FF_FS_NORTC)
+DWORD get_fattime(void)
+{
+  Lib_RTC_UnixType ts = Lib_RTC_Read_Time();
+  return Lib_RTC_Unix2Fat(ts);
+}
+#endif

@@ -65,6 +65,9 @@
 void Lib_USART_Init(void);
 void Lib_USART_Send_Byte(const int8_t data);
 void Lib_USART_Send_String(const char *str);
+void Lib_USART_Int2Char_DEC(const int num, uint8_t *const buffer);
+void Lib_USART_Int2Char_HEX(const int num, uint8_t *const buffer);
+void Lib_USART_Double2Char(const double num, uint8_t *const buffer, const uint8_t num_frac_bits);
 void Lib_USART_Send_fString(const char *str, ...);
 void Lib_USART_IT_Handler(void);
 

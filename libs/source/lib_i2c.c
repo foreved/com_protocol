@@ -1,8 +1,8 @@
 #include "lib_i2c.h"
 
-uint8_t LIB_I2C_BUFFER[LIB_I2C_BUFFER_SIZE];
-uint8_t LIB_I2C_PBUFFER;
-
+/*
+ * @brief   初始化 I2C
+*/
 void Lib_I2C_Init(void)
 {
     LL_GPIO_InitTypeDef gpio_config = {0};
@@ -32,6 +32,17 @@ void Lib_I2C_Init(void)
     LL_I2C_Enable(LIB_I2C);
 }
 
+// SDA 方向为主机写数据
+#define Lib_I2C_Set_Write(addr)     ((addr << 1) | 0)
+// SDA 方向为主机读数据
+#define Lib_I2C_Set_Read(addr)      ((addr << 1) | 1)
+
+/* 
+ * @brief   使用 I2C 向从机发送数据
+ * @param   slave_addr 从机地址: bit7～bit1 是 7 位从机地址, bit0 是 0.
+ *          buffer 数据缓冲区: 存放发送的数据序列
+ *          num 数据个数: 总共发送的数据个数
+*/
 void Lib_I2C_Send_Data(const uint8_t slave_addr, const uint8_t* const buffer, const uint32_t num)
 {
     // 开始通信前, 检查总线是否存在通信事件
@@ -63,6 +74,12 @@ void Lib_I2C_Send_Data(const uint8_t slave_addr, const uint8_t* const buffer, co
     LL_I2C_GenerateStopCondition(LIB_I2C);
 }
 
+/* 
+ * @brief   使用 I2C 从从机接收数据
+ * @param   slave_addr 从机地址: bit7～bit1 是 7 位从机地址, bit0 是 1.
+ *          buffer 数据缓冲区: 存放接收的数据序列
+ *          num 数据个数: 总共要接收的数据个数
+*/
 void Lib_I2C_Receive_Data(const uint8_t slave_addr, uint8_t* const buffer, const uint32_t num)
 {
     // 开始通信前, 检查总线是否存在通信事件
@@ -111,5 +128,4 @@ void Lib_I2C_Receive_Data(const uint8_t slave_addr, uint8_t* const buffer, const
             buffer[i] = LL_I2C_ReceiveData8(LIB_I2C);
         }
     }
-    
 }

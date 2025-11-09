@@ -1,9 +1,11 @@
 #include "mod_flash.h"
+#include "lib_usart.h"
+#include "ff.h"
 
 static void Mod_Flash_Wait_Busy();
 static void Mod_Flash_Write_Enable(void);
 static void Mod_Flash_Send_Addr(const uint32_t addr);
-static ErrorStatus Mod_Flash_Write_Page(const uint8_t * const pbuffer, const uint32_t addr, const uint16_t num_write);
+static ErrorStatus Mod_Flash_Write_Page(const uint8_t *const pbuffer, const uint32_t addr, const uint16_t num_write);
 
 // 读取 JEDCE_ID
 uint32_t Mod_Flash_Read_JEDCE_ID(void)
@@ -29,7 +31,7 @@ static void Mod_Flash_Wait_Busy()
     uint8_t status = 0;
     Mod_Flash_COM_Start();
 
-    Mod_Flash_Send_Byte(MOD_FLASH_W25Q64_READ_STATUS_REGISTER_1); 
+    Mod_Flash_Send_Byte(MOD_FLASH_W25Q64_READ_STATUS_REGISTER_1);
     do // 发送读取状态寄存器后, FLASH 会一直返回状态, 直到通信结束
     {
         status = Mod_Flash_Receive_Byte();
@@ -62,7 +64,7 @@ ErrorStatus Mod_Flash_Erase_Sector(const uint32_t addr)
 {
     if (addr % MOD_FLASH_SECTOR_SIZE != 0)
     {
-        return ERROR;        // 扇区擦除必须对齐
+        return ERROR; // 扇区擦除必须对齐
     }
 
     Mod_Flash_Write_Enable();
@@ -80,7 +82,7 @@ ErrorStatus Mod_Flash_Erase_Sector(const uint32_t addr)
 // 若 addr 不与页大小对齐, num_write 要不大于 addr 所在页的部分页大小
 // 写入不能跨页, 只能在 addr 所在页写入
 // 写入操作一般不调用擦除函数, 因为 Flash 擦除次数有限, 应避免频繁擦除
-static ErrorStatus Mod_Flash_Write_Page(const uint8_t * const pbuffer, const uint32_t addr, const uint16_t num_write)
+static ErrorStatus Mod_Flash_Write_Page(const uint8_t *const pbuffer, const uint32_t addr, const uint16_t num_write)
 {
     uint32_t num_remain = MOD_FLASH_PAGE_SIZE - addr % MOD_FLASH_PAGE_SIZE; // addr 所在页的剩余页大小
     if (num_remain < num_write)
@@ -102,13 +104,13 @@ static ErrorStatus Mod_Flash_Write_Page(const uint8_t * const pbuffer, const uin
 }
 
 // 不定量写入
-void Mod_Flash_Write(const uint8_t * const pbuffer, const uint32_t addr, const uint32_t num_write)
+void Mod_Flash_Write(const uint8_t *const pbuffer, const uint32_t addr, const uint32_t num_write)
 {
     uint32_t num_pages = 0, num_front = 0, num_tail = 0;
     uint32_t pb = (uint32_t)pbuffer, pa = addr; // pb 指向缓冲区, pa 指向 Flash 地址
 
     num_front = MOD_FLASH_PAGE_SIZE - addr % MOD_FLASH_PAGE_SIZE; // 头部部分页大小
-    if (num_front >= num_write) // 不需要跨页
+    if (num_front >= num_write)                                   // 不需要跨页
     {
         (void)num_pages;
         (void)num_tail;
@@ -118,29 +120,29 @@ void Mod_Flash_Write(const uint8_t * const pbuffer, const uint32_t addr, const u
     }
     else // 需要跨页
     {
-        num_pages = (num_write - num_front) / MOD_FLASH_PAGE_SIZE;   // 按完整页写入的页数
-        num_tail = (num_write - num_front) % MOD_FLASH_PAGE_SIZE;    // 尾部剩余的部分页
+        num_pages = (num_write - num_front) / MOD_FLASH_PAGE_SIZE; // 按完整页写入的页数
+        num_tail = (num_write - num_front) % MOD_FLASH_PAGE_SIZE;  // 尾部剩余的部分页
         // 写入头部部分页
-        Mod_Flash_Write_Page((uint8_t*)pb, pa, num_front);
+        Mod_Flash_Write_Page((uint8_t *)pb, pa, num_front);
         pb += num_front;
         pa += num_front;
         // 写入完整页
         for (uint32_t i = 0; i < num_pages; ++i)
         {
-            Mod_Flash_Write_Page((uint8_t*)pb, pa, MOD_FLASH_PAGE_SIZE);
+            Mod_Flash_Write_Page((uint8_t *)pb, pa, MOD_FLASH_PAGE_SIZE);
             pb += MOD_FLASH_PAGE_SIZE;
             pa += MOD_FLASH_PAGE_SIZE;
         }
         // 写入尾部剩余剩余页
         if (num_tail > 0)
         {
-            Mod_Flash_Write_Page((uint8_t*)pb, pa, num_tail);
+            Mod_Flash_Write_Page((uint8_t *)pb, pa, num_tail);
         }
     }
 }
 
 // 读取 Flash 没有地址对齐的要求
-void Mod_Flash_Read(uint8_t * const pbuffer, const uint32_t addr, const uint32_t num_read)
+void Mod_Flash_Read(uint8_t *const pbuffer, const uint32_t addr, const uint32_t num_read)
 {
     Mod_Flash_COM_Start();
     Mod_Flash_Send_Byte(MOD_FLASH_W25Q64_READ_DATA); // flash 开始读取, 就会一直发送数据, 直到通信结束
@@ -150,4 +152,42 @@ void Mod_Flash_Read(uint8_t * const pbuffer, const uint32_t addr, const uint32_t
         pbuffer[i] = Mod_Flash_Receive_Byte();
     }
     Mod_Flash_COM_Stop();
+}
+
+/*
+ * @brief   检查是否存在 FatFs, 若没有则创建
+ */
+void Mod_Flash_FatFs_Check(FATFS* fs)
+{
+    FRESULT fres;
+
+    // 尝试挂载
+    fres = f_mount(fs, "0:", 1);
+    if (fres == FR_NO_FILESYSTEM) // 没有 Fatfs
+    {
+        Lib_USART_Send_String("No Fatfs. Start to create.\n");
+        // 创建文件系统
+        BYTE work[FF_MAX_SS];                            // 创建文件系统需要工作缓冲区, 最少为 FF_MAX_SS
+        fres = f_mkfs("0:", (void *)0, work, FF_MAX_SS); // 使用默认参数初始化
+        if (fres == FR_OK)                               // 成功创建
+        {
+            Lib_USART_Send_String("Have created FatFs sucessfully.\n");
+            fres = f_unmount("0:"); // 初始化文件系统后, 重新挂载
+            fres = f_mount(fs, "0:", 0);
+        }
+        else // 创建失败
+        {
+            Lib_USART_Send_fString("Error: fail to create FstFs. FRESULT is %d. Stop...\n", fres);
+            while (1);
+        }
+    }
+    else if (fres != FR_OK) // FatFs 已存在, 但挂载失败
+    {
+        Lib_USART_Send_fString("Error: FatFs exsisted, but fail to mount. FRESULT is %d. Stop...\n", fres);
+        while (1);
+    }
+    else // FatFs 已存在, 且挂载成功
+    {
+        Lib_USART_Send_String("FatFs exsisted, and succeed to mount.\n");
+    }
 }

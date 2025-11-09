@@ -117,7 +117,7 @@ static void Lib_USART_Reverse_String(uint8_t * const array, const uint8_t st, co
   }
 }
 
-static void Lib_USART_Int2Char_DEC(const int num, uint8_t * const buffer)
+void Lib_USART_Int2Char_DEC(const int num, uint8_t * const buffer)
 {
   uint8_t p = 0, st = 0; // p遍历buffer; st记录反转的开始下标
   int tmp = num;
@@ -145,7 +145,7 @@ static void Lib_USART_Int2Char_DEC(const int num, uint8_t * const buffer)
   buffer[p] = '\0';
 }
 
-static void Lib_USART_Int2Char_HEX(const int num, uint8_t * const buffer)
+void Lib_USART_Int2Char_HEX(const int num, uint8_t * const buffer)
 {
   uint8_t p = 0, st = 0, v = 0; // p遍历buffer; st记录反转的开始下标; v为取余的结果
   int tmp = num;
@@ -185,7 +185,7 @@ static void Lib_USART_Int2Char_HEX(const int num, uint8_t * const buffer)
 }
 
 // num_frac_bits指定小数位数，只是截断显示
-static void Lib_USART_Double2Char(const double num, uint8_t * const buffer, const uint8_t num_frac_bits)
+void Lib_USART_Double2Char(const double num, uint8_t * const buffer, const uint8_t num_frac_bits)
 {
   uint8_t p = 0, st = 0;
   int int_part = 0;            // 存num的整数部分
@@ -231,13 +231,15 @@ static void Lib_USART_Double2Char(const double num, uint8_t * const buffer, cons
   else
   {
     // num_frac_bits显示小数位数
-    for (uint8_t i = 0; i < num_frac_bits; ++i)
+    for (uint8_t i = 0; i < num_frac_bits + 1; ++i)
     {
       frac_part *= 10;
       buffer[p] = (uint8_t)frac_part + '0';
       ++p;
       frac_part = frac_part - (uint8_t)frac_part;
     }
+    if (buffer[p - 1] > '4') buffer[p - 2] += 1;
+    --p;
   }
   buffer[p] = '\0';
 }
